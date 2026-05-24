@@ -1,26 +1,31 @@
-// Spelet - GRISCH FIGHT
-// CANVAS
+// ======================
+// GRISCH FIGHT
+// ======================
 
 const canvas = document.getElementById("gameCanvas");
 const c = canvas.getContext("2d");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 canvas.style.display = "none";
 
 const gravity = 0.7;
 
-// GAME STATE
+// Spelarnas status
 
-let gameState = "menu"; // menu | playing | gameover
+let gameState = "menu";
+
 let round = 1;
 let maxRounds = 3;
 
 let playerScore = 0;
 let enemyScore = 0;
 
-// UI - START
+let timer = 99;
+
+// ======================
+// Startskärmen
+// ======================
 
 const startScreen = document.createElement("div");
 startScreen.id = "startScreen";
@@ -28,15 +33,13 @@ startScreen.id = "startScreen";
 startScreen.innerHTML = `
 <div class="menu">
   <h1>GRISCH FIGHT</h1>
-
   <button id="startBtn">START GAME</button>
   <button id="controlsBtn">CONTROLS</button>
 
-  <div id="controlsBox">
+  <div id="controlsBox" style="display:none;">
     <p>A / D = Move</p>
     <p>W = Jump</p>
     <p>SPACE = Attack</p>
-    <p>Enemy = AI</p>
   </div>
 </div>
 `;
@@ -52,26 +55,22 @@ hud.id = "hud";
 
 hud.innerHTML = `
 <div class="playerContainer">
-  <div class="playerName">PLAYER</div>
-  <div class="healthWrapper">
-    <div id="playerHealth" class="healthBar"></div>
-  </div>
+  <div>PLAYER</div>
+  <div class="healthWrapper"><div id="playerHealth" class="healthBar"></div></div>
 </div>
 
-<div id="timer">100</div>
+<div id="timer">99</div>
 
 <div class="playerContainer enemyUI">
-  <div class="playerName">ENEMY</div>
-  <div class="healthWrapper">
-    <div id="enemyHealth" class="healthBar"></div>
-  </div>
+  <div>ENEMY</div>
+  <div class="healthWrapper"><div id="enemyHealth" class="healthBar"></div></div>
 </div>
 `;
 
 document.body.appendChild(hud);
 
 // ======================
-// STYLE (minimal, stable)
+// STYLE
 // ======================
 
 const style = document.createElement("style");
@@ -79,22 +78,21 @@ const style = document.createElement("style");
 style.innerHTML = `
 body{margin:0;overflow:hidden;background:black;}
 
+#startBtn, #controlsBtn {
+  padding:10px 20px;
+  margin:10px;
+  font-size:16px;
+}
+
 #startScreen{
   position:absolute;inset:0;
   display:flex;
   justify-content:center;
   align-items:center;
   background:rgba(0,0,0,0.85);
-  z-index:100;
   color:white;
+  z-index:100;
   text-align:center;
-}
-
-.menu button{
-  display:block;
-  margin:10px auto;
-  padding:12px;
-  width:200px;
 }
 
 #hud{
@@ -105,15 +103,12 @@ body{margin:0;overflow:hidden;background:black;}
   width:90%;
   display:none;
   justify-content:space-between;
-  align-items:center;
+  color:white;
 }
 
-.playerContainer{width:35%;}
-
-.enemyUI{text-align:right;}
-
 .healthWrapper{
-  height:25px;
+  width:200px;
+  height:20px;
   border:2px solid white;
 }
 
@@ -124,27 +119,27 @@ body{margin:0;overflow:hidden;background:black;}
 }
 
 #timer{
-  width:90px;
-  height:90px;
+  width:80px;
+  height:80px;
   border-radius:50%;
   border:3px solid yellow;
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
   color:white;
 }
 `;
 
 document.head.appendChild(style);
 
-// KNAPPAR
+// ======================
+// Knappar
+// ======================
 
 document.getElementById("controlsBtn").onclick = () => {
   const box = document.getElementById("controlsBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
 };
-
-// START GAME
 
 document.getElementById("startBtn").onclick = () => {
   startScreen.style.display = "none";
@@ -157,7 +152,9 @@ document.getElementById("startBtn").onclick = () => {
   animate();
 };
 
-// SPRITE KLASSER
+// ======================
+// Fightare
+// ======================
 
 class Fighter {
   constructor({ x, y, color, offset }) {
@@ -225,7 +222,9 @@ class Fighter {
   }
 }
 
+// ======================
 // Spelare
+// ======================
 
 const player = new Fighter({
   x: 150,
@@ -241,14 +240,12 @@ const enemy = new Fighter({
   offset: { x: -110, y: 0 },
 });
 
-// Inputs
 
-const keys = {
-  a: false,
-  d: false,
-};
+const keys = { a: false, d: false };
 
-// Kollision
+// ======================
+// Kollisioner
+// ======================
 
 function hit(a, b) {
   return (
@@ -259,92 +256,72 @@ function hit(a, b) {
   );
 }
 
-// AI 
+// ======================
+// AI
+// ======================
 
 function enemyAI() {
-  if (player.position.x < enemy.position.x) {
+  const distance = player.position.x - enemy.position.x;
+
+  if (distance < -80) {
     enemy.velocity.x = -3;
-  } else {
+  } else if (distance > 80) {
     enemy.velocity.x = 3;
+  } else {
+    enemy.velocity.x = 0;
+
+    if (Math.random() < 0.05) {
+      enemy.attack();
+    }
   }
 
-  if (Math.random() < 0.02) {
-    enemy.attack();
+  if (Math.random() < 0.002 && enemy.velocity.y === 0) {
+    enemy.velocity.y = -15;
   }
 }
 
+// ======================
 // HUD
+// ======================
 
 function updateHUD() {
   document.getElementById("playerHealth").style.width = player.health + "%";
   document.getElementById("enemyHealth").style.width = enemy.health + "%";
 }
 
-// En Timer och rundor
-
-
-let timer = 100;
+// ======================
+// Tidtagare
+// ======================
 
 function decreaseTimer() {
   if (gameState !== "playing") return;
 
   if (timer > 0) {
     timer--;
-
     document.getElementById("timer").innerHTML = timer;
-
     setTimeout(decreaseTimer, 1000);
   } else {
-    endGameByTime();
-  }
-}
-
-function nextRound() {
-  round++;
-
-  if (round > maxRounds) {
     endGame();
-    return;
   }
-
-  player.health = 100;
-  enemy.health = 100;
-
-  timer = 99;
-  decreaseTimer();
-  updateHUD();
 }
 
-// Spelet tar slut.
+// ======================
+// GAME OVER på riktigt!
+// ======================
 
 function endGame() {
   gameState = "gameover";
 
-  if (player.health > enemy.health) {
-    alert("PLAYER WINS");
-    playerScore++;
-  } else {
-    alert("ENEMY WINS");
-    enemyScore++;
-  }
-
-  location.reload();
-}
-
-// Spelet tar slut efter tiden har gått ut. //
-function endGameByTime() {
-  gameState = "ended";
-
   let message = "";
 
   if (player.health > enemy.health) {
-    message = "PLAYER WINS";
+    message = "PLAYER WINS!";
     playerScore++;
   } else if (enemy.health > player.health) {
-    message = "ENEMY WINS";
+    message = "ENEMY WINS!";
     enemyScore++;
   } else {
-    message = "DRAW";
+    message = "DRAW!";
   }
 
   setTimeout(() => {
@@ -352,7 +329,10 @@ function endGameByTime() {
     location.reload();
   }, 100);
 }
-// LOOP
+
+// ======================
+// Spelets loop
+// ======================
 
 function animate() {
   if (gameState !== "playing") return;
@@ -371,22 +351,20 @@ function animate() {
   if (keys.a) player.velocity.x = -6;
   if (keys.d) player.velocity.x = 6;
 
-  // hits
-  if (hit(player, enemy) && player.attacking) {
+  if (player.attacking && hit(player, enemy)) {
     enemy.hit();
     updateHUD();
     player.attacking = false;
   }
 
-  if (hit(enemy, player) && enemy.attacking) {
+  if (enemy.attacking && hit(enemy, player)) {
     player.hit();
     updateHUD();
     enemy.attacking = false;
   }
 
-  // Säkerhetskontroll för om spelare eller fiende har dött, för att undvika att spelet eventuellt fortsätter.
   if (player.health <= 0 || enemy.health <= 0) {
-    endGameByTime();
+    endGame();
   }
 }
 
